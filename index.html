@@ -2,7 +2,7 @@
 
 <head>
   <title>Hacktoberfest Brno Challenge</title>
-  <script async defer src="https://buttons.github.io/buttons.js"></script>
+  <script async defer src="buttons.js"></script>
   <style>
     body {
       background: #ECEFF1;
@@ -125,7 +125,7 @@
           the list!</a></span>
     </div>
     <hr>
-    <button id="alistbtn" onclick="changelist('Attendees','alist')">Load List</button>
+    <div><button id="alistbtn" onclick="changelist('Attendees','alist')">Load List</button></div>
     <select id="c" onchange="page(0)">
       <option value="10">Show 10 per page</option>
       <option value="25" selected>Show 25 per page</option>
@@ -137,9 +137,9 @@
     <h3 id="lbl"></h3>
     <!-- User Files | Contribution File's Links -->
     <ul id="d">
-      <li>Loading...</li>
+      <li>Hit the load list button!</li>
     </ul>
-    <button id="clearcachebtn" onclick="clearcacheandreload()">Clear ... Cache</button>
+    <button id="clearcachebtn" style="display: none;" onclick="clearcacheandreload()">Clear ... Cache</button>
     <!-- Content Footer -->
     <hr>
     <div class="contentFooter">
@@ -149,125 +149,124 @@
     </div>
     <!-- Content Footer End -->
   </div>
+  <script>
+    const mincacheage = 60; //dont allow manual clearing less than this many seconds
+    const cacheexpirysecs = 900; //expire cache every 15 mins
+    function setList(l, name, s, c) {
+      if (s == null || s < 0)
+        s = 0;
+      if (c == null || c < 0 || s + c > l.length)
+        c = l.length - s;
+      document.getElementById("lbl").innerHTML = "Here are my " + l.length + " " + name + " (from " + (s + 1) + " to " + (s + c) + "): "
+      var h = document.getElementById("d");
+      h.innerHTML = "";
+      l = l.slice(s, s + c);
+      i = s + 1;
+      for (var x of l) {
+        h.innerHTML += "<li><a href=\"" + x.path + "\">" + i + ". " + x.name + "</a></li>";
+        i++;
+      }
+    }
+
+    function clearcacheandreload() {
+      localStorage.removeItem(curlist)
+      changelist(curURL, curlist)
+    }
+
+    function handleClearCacheButton(canclear) {
+      b = document.getElementById("clearcachebtn")
+      b.disabled = !canclear
+      cacheage = epochSecs() - localStorage.getItem(curlist + "time")
+      b.style.display = "block"
+      b.innerHTML = canclear ? "Your cache is " + cacheage + " seconds old, clear?" : "Your cache is only " + cacheage + "s old. clearing is not necessary."
+    }
+
+    function epochSecs() {
+      return ~~(new Date().getTime() / 1000)
+    }
+
+    function getperpage() {
+      return document.getElementById("c").value - (-0);
+    }
+
+    function setperpage(i) {
+      document.getElementById("c").value = -(-i)
+    }
+
+    // the url of the folder, and the local storage element name
+    function changelist(URL, LSName) {
+      curlist = LSName;
+      curURL = URL;
+      isCacheExpired = localStorage.getItem(curlist + "time") == null || (epochSecs() - localStorage.getItem(curlist + "time")) > cacheexpirysecs
+      if (localStorage.getItem(curlist) == null || isCacheExpired) {
+        document.getElementById("d").innerHTML = "<li>Loading " + URL + "...</li>"
+        const gitapiurl = "https://api.github.com/repos/Kentico/hacktoberfest-event-brno-2018/contents/" + curURL;
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+          if (this.readyState == 4 && this.status == 200) {
+            localStorage.setItem(curlist, this.responseText)
+            localStorage.setItem(curlist + "time", epochSecs())
+            handleClearCacheButton(epochSecs() - localStorage.getItem(curlist + "time") > mincacheage)
+            setList(JSON.parse(this.responseText), curpage * getperpage(), getperpage())
+            page(0)
+          }
+        };
+        xhttp.open("GET", gitapiurl, true);
+        xhttp.send();
+      } else {
+        handleClearCacheButton(epochSecs() - localStorage.getItem(curlist + "time") > mincacheage)
+        setList(JSON.parse(localStorage.getItem(curlist)), curURL, curpage * getperpage(), getperpage())
+        page(0)
+      }
+    }
+
+    var curlist = "";
+    var curURL = "";
+    var curpage = 0;
+    function page(i) {
+      l = JSON.parse(localStorage.getItem(curlist))
+      numpages = Math.ceil(l.length / getperpage())
+      curpage += i
+      if (curpage < 0)
+        curpage = 0
+      if (curpage > numpages)
+        curpage = numpages - 1
+      document.getElementById("pgbtnprv").disabled = curpage == 0
+      document.getElementById("pgbtnnxt").disabled = curpage == (numpages - 1)
+      curcount = curpage * getperpage()
+      window.location.hash = "#" + curlist + "_" + getperpage() + "_" + curpage
+      setList(l, curURL, curpage * getperpage(), getperpage())
+    }
+
+    var h = window.location.hash
+    tagname = h.split("_", 1)[0]
+    if (tagname == "#glist") {
+      curlist = "glist"
+      curURL = "Games"
+    } else if (tagname == "#blist") {
+      curlist = "blist"
+      curURL = "BSoD"
+    } else {
+      curlist = "alist"
+      curURL = "Attendees"
+    }
+    validhash = false
+    if (h != "") {
+      hl = h.split("_", 3)
+      if (hl.length == 3) {
+        pc = hl[1]
+        pn = hl[2]
+        if (!isNaN(pn) && !isNaN(pc)) {
+          setperpage(-(-pc))
+          page(-(-pn))
+          validhash = true
+        }
+      }
+    }
+    if (!validhash) {
+      page(0)
+    }
+  </script>
 </body>
 
 </html>
-
-<script>
-  const mincacheage = 1; //dont allow manual clearing less than this many seconds
-  const cacheexpirysecs = 900; //expire cache every 15 mins
-  function setList(l, name, s, c) {
-    if (s == null || s < 0)
-      s = 0
-    if (c == null || c < 0 || s + c > l.length)
-      c = l.length - s
-    document.getElementById("lbl").innerHTML = "Here are my " + l.length + " " + name + " (from " + (s + 1) + " to " + (s + c) + "): "
-    var h = document.getElementById("d");
-    h.innerHTML = "";
-    l = l.slice(s, s + c)
-    i = s + 1
-    for (var x of l) {
-      h.innerHTML += "<li><a href=\"" + x.path + "\">" + i + ". " + x.name + "</a></li>";
-      i++
-    }
-  }
-
-  function clearcacheandreload() {
-    localStorage.removeItem(curlist)
-    changelist(curURL, curlist)
-  }
-
-  function handleClearCacheButton(canclear) {
-    b = document.getElementById("clearcachebtn")
-    b.disabled = !canclear
-    cacheage = epochSecs() - localStorage.getItem(curlist + "time")
-    b.style.display = "block"
-    b.innerHTML = canclear ? "Your cache is " + cacheage + " seconds old, clear?" : "Your cache is only " + cacheage + "s old. clearing is not necessary."
-  }
-
-  function epochSecs() {
-    return ~~(new Date().getTime() / 1000)
-  }
-
-  function getperpage() {
-    return document.getElementById("c").value - (-0);
-  }
-
-  function setperpage(i) {
-    document.getElementById("c").value = -(-i)
-  }
-
-  // the url of the folder, and the local storage element name
-  function changelist(URL, LSName) {
-    curlist = LSName;
-    curURL = URL;
-    isCacheExpired = localStorage.getItem(curlist + "time") == null || (epochSecs() - localStorage.getItem(curlist + "time")) > cacheexpirysecs
-    if (localStorage.getItem(curlist) == null || isCacheExpired) {
-      document.getElementById("d").innerHTML = "<li>Loading " + URL + "...</li>"
-      const gitapiurl = "https://api.github.com/repos/Kentico/hacktoberfest-event-brno-2018/contents/" + curURL;
-      var xhttp = new XMLHttpRequest();
-      xhttp.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          localStorage.setItem(curlist, this.responseText)
-          localStorage.setItem(curlist + "time", epochSecs())
-          handleClearCacheButton(epochSecs() - localStorage.getItem(curlist + "time") > mincacheage)
-          setList(JSON.parse(this.responseText), curpage * getperpage(), getperpage())
-          page(0)
-        }
-      };
-      xhttp.open("GET", gitapiurl, true);
-      xhttp.send();
-    } else {
-      handleClearCacheButton(epochSecs() - localStorage.getItem(curlist + "time") > mincacheage)
-      setList(JSON.parse(localStorage.getItem(curlist)), curURL, curpage * getperpage(), getperpage())
-      page(0)
-    }
-  }
-
-  var curlist = "";
-  var curURL = "";
-  var curpage = 0;
-  function page(i) {
-    l = JSON.parse(localStorage.getItem(curlist))
-    numpages = Math.ceil(l.length / getperpage())
-    curpage += i
-    if (curpage < 0)
-      curpage = 0
-    if (curpage > numpages)
-      curpage = numpages - 1
-    document.getElementById("pgbtnprv").disabled = curpage == 0
-    document.getElementById("pgbtnnxt").disabled = curpage == (numpages - 1)
-    curcount = curpage * getperpage()
-    window.location.hash = "#" + curlist + "_" + getperpage() + "_" + curpage
-    setList(l, curURL, curpage * getperpage(), getperpage())
-  }
-
-  var h = window.location.hash
-  tagname = h.split("_", 1)[0]
-  if (tagname == "#glist") {
-    curlist = "glist"
-    curURL = "Games"
-  } else if (tagname == "#blist") {
-    curlist = "blist"
-    curURL = "BSoD"
-  } else {
-    curlist = "alist"
-    curURL = "Attendees"
-  }
-  validhash = false
-  if (h != "") {
-    hl = h.split("_", 3)
-    if (hl.length == 3) {
-      pc = hl[1]
-      pn = hl[2]
-      if (!isNaN(pn) && !isNaN(pc)) {
-        setperpage(-(-pc))
-        page(-(-pn))
-        validhash = true
-      }
-    }
-  }
-  if (!validhash) {
-    page(0)
-  }
-</script>

@@ -125,6 +125,7 @@
           the list!</a></span>
     </div>
     <hr>
+    <button id="alistbtn" onclick="changelist('Attendees','alist')">Load List</button>
     <select id="c" onchange="page(0)">
       <option value="10">Show 10 per page</option>
       <option value="25" selected>Show 25 per page</option>
@@ -153,7 +154,7 @@
 </html>
 
 <script>
-  const mincacheage = 60; //dont allow manual clearing less than this many seconds
+  const mincacheage = 1; //dont allow manual clearing less than this many seconds
   const cacheexpirysecs = 900; //expire cache every 15 mins
   function setList(l, name, s, c) {
     if (s == null || s < 0)
@@ -250,8 +251,8 @@
     curlist = "blist"
     curURL = "BSoD"
   } else {
-    curlist = "flist"
-    curURL = "Friends"
+    curlist = "alist"
+    curURL = "Attendees"
   }
   validhash = false
   if (h != "") {
